@@ -1,6 +1,7 @@
 <?php
 namespace DanielSimkus\SlackEmojiTransformer\Providers;
 
+use DanielSimkus\SlackEmojiTransformer\SlackEmojiTransformerService;
 use Illuminate\Support\ServiceProvider;
 
 class SlackEmojiTransformerProvider extends ServiceProvider

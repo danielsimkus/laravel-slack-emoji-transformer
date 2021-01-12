@@ -8,6 +8,7 @@ use Illuminate\Hashing\HashManager;
 use Illuminate\Http\Client\Factory as Http;
 use Illuminate\Filesystem\Cache as Cache;
 use Illuminate\Config\Repository as Config;
+use Illuminate\Support\Collection;
 
 class LoadCustomEmojis
 {
@@ -28,17 +29,24 @@ class LoadCustomEmojis
         $this->hashManager = $hashManager;
     }
 
-    public function load(string $token)
+    public function load(string $token, bool $isBot = false): Collection
     {
         return $this->cache->remember(
             static::class . $this->hashManager->make($token),
             $this->config->get('slack-emoji-transformer.custom-emoji-cache-time-seconds', 300),
-            fn () => $this->loadEmojisFromSlack($token)
+            fn () => collect($this->loadEmojisFromSlack($token, $isBot))
         );
     }
 
-    protected function loadEmojisFromSlack($token) {
-        return $this->http->withToken($token)
-            ->get($this->config->get('slack-emoji-transformer.slack-api', "https://slack.com/api/") . 'emoji.list')->json();
+    protected function loadEmojisFromSlack(string $token, bool $isBot): Collection
+    {
+        $action = ($isBot) ? 'admin.emoji.list' : 'emoji.list';
+        $response = collect($this->http->withToken($token)
+            ->get($this->config->get('slack-emoji-transformer.slack-api', "https://slack.com/api/") . $action)
+            ->json());
+        if ($isBot) {
+            $response->map(fn ($item) => $item['url']);
+        }
+        return $response;
     }
 }
