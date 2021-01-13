@@ -6,8 +6,8 @@ namespace DanielSimkus\SlackEmojiTransformer\Actions;
 
 use Illuminate\Hashing\HashManager;
 use Illuminate\Http\Client\Factory as Http;
-use Illuminate\Filesystem\Cache as Cache;
-use Illuminate\Config\Repository as Config;
+use Illuminate\Contracts\Cache\Repository as Cache;
+use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Support\Collection;
 
 class LoadCustomEmojis
