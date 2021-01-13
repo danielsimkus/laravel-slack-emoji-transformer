@@ -45,7 +45,7 @@ class LoadCustomEmojis
             ->get($this->config->get('slack-emoji-transformer.slack-api', "https://slack.com/api/") . $action)
             ->json();
         if ($response['ok'] === false) {
-            Throw new \Exception('Failed to load custom emojis: ' . $response->get('error'));
+            Throw new \Exception('Failed to load custom emojis: ' . $response['error']);
         }
 
         $emojies = collect($response['emoji']);
