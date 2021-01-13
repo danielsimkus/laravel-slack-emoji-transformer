@@ -39,7 +39,7 @@ class SlackEmojiTransformerService
             $strippedEmoji = str_replace(':', '', $emoji);
             if ($customEmojis->has($strippedEmoji)) {
                 $replacements->add(['from' => $emoji, 'to' => $customEmojis->get($strippedEmoji)]);
-            } elseif ($unicodeEmoji = $defaultEmojis->first(fn ($item) => $item->name === $strippedEmoji)) {
+            } elseif ($unicodeEmoji = $defaultEmojis->first(fn ($item) => $item['name'] === $strippedEmoji)) {
                 $replacements->add(['from' => $emoji, 'to' => $unicodeEmoji]);
             }
         }
