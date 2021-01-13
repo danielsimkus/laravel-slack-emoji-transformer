@@ -49,7 +49,7 @@ class SlackEmojiTransformerService
 
     public function isBot(): self
     {
-        $this->isBot = false;
+        $this->isBot = true;
         return $this;
     }
 

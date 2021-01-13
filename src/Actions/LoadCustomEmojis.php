@@ -34,19 +34,24 @@ class LoadCustomEmojis
         return $this->cache->remember(
             static::class . $this->hashManager->make($token),
             $this->config->get('slack-emoji-transformer.custom-emoji-cache-time-seconds', 300),
-            fn () => collect($this->loadEmojisFromSlack($token, $isBot))
+            fn () => $this->loadEmojisFromSlack($token, $isBot)
         );
     }
 
     protected function loadEmojisFromSlack(string $token, bool $isBot): Collection
     {
         $action = ($isBot) ? 'admin.emoji.list' : 'emoji.list';
-        $response = collect($this->http->withToken($token)
+        $response = $this->http->withToken($token)
             ->get($this->config->get('slack-emoji-transformer.slack-api', "https://slack.com/api/") . $action)
-            ->json());
-        if ($isBot) {
-            $response->map(fn ($item) => $item['url']);
+            ->json();
+        if ($response['ok'] === false) {
+            Throw new \Exception('Failed to load custom emojis: ' . $response->get('error'));
         }
-        return $response;
+
+        $emojies = collect($response['emoji']);
+        if ($isBot) {
+            $emojies->map(fn ($item) => $item['url']);
+        }
+        return $emojies;
     }
 }
