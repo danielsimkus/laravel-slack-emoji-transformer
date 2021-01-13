@@ -32,6 +32,6 @@ class LoadDefaultEmojis
 
     protected function loadEmojisFromFile(): array
     {
-        return json_decode(file_get_contents(__DIR__ . '../../data/slack-emoji-map.json'), true);
+        return json_decode(file_get_contents(__DIR__ . '/../../data/slack-emoji-map.json'), true);
     }
 }
