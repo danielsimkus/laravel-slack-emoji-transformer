@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace DanielSimkus\SlackEmojiTransformer\Actions;
 
-use Illuminate\Hashing\HashManager;
-use Illuminate\Http\Client\Factory as Http;
-use Illuminate\Filesystem\Cache as Cache;
-use Illuminate\Config\Repository as Config;
+use Illuminate\Contracts\Cache\Repository as Cache;
+use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Support\Collection;
 
 class LoadDefaultEmojis
@@ -28,7 +26,7 @@ class LoadDefaultEmojis
         return $this->cache->remember(
             static::class,
             $this->config->get('slack-emoji-transformer.default-emoji-cache-time-seconds', 86400),
-            fn () => collect($this->loadEmojisFromSlack($token, $isBot))
+            fn () => collect($this->loadEmojisFromFile())
         );
     }
 
