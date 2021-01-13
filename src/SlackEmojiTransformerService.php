@@ -34,6 +34,7 @@ class SlackEmojiTransformerService
         preg_match_all(':([A-Za-z0-9]):', $message, $emojis);
         $replacements = collect([]);
         $customEmojis = app(LoadCustomEmojis::class)->load($this->token, $this->isBot);
+        dd($customEmojis);
         $defaultEmojis = app(LoadDefaultEmojis::class)->load();
         foreach ($emojis as $emoji) {
             $strippedEmoji = str_replace(':', '', $emoji);
