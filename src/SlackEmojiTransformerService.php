@@ -8,6 +8,7 @@ use DanielSimkus\SlackEmojiTransformer\Actions\LoadCustomEmojis;
 use DanielSimkus\SlackEmojiTransformer\Actions\LoadDefaultEmojis;
 use DanielSimkus\SlackEmojiTransformer\Transformers\TransformsUrls;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 final class SlackEmojiTransformerService
 {
@@ -37,23 +38,54 @@ final class SlackEmojiTransformerService
      */
     public function getReplacements(string $message): Collection
     {
-        preg_match_all('/:[^:\s]*(?:::[^:\s]*)*:/', $message, $emojis);
+        $emojis = $this->getEmojiesFromMessage($message);
         if (!$emojis) {
             return collect([]);
         }
-        $emojis = $emojis[0];
+
         $replacements = collect([]);
         $customEmojis = app(LoadCustomEmojis::class)->load($this->token);
         $defaultEmojis = app(LoadDefaultEmojis::class)->load();
         foreach ($emojis as $emoji) {
-            $strippedEmoji = str_replace(':', '', $emoji);
-            if ($customEmojis->has($strippedEmoji)) {
-                $replacements->add(['from' => $emoji, 'to' => $this->slackUrlTransformer->transform($customEmojis->get($strippedEmoji))]);
-            } elseif ($defaultEmoji = $defaultEmojis->first(fn ($item) => $item['name'] === $strippedEmoji)) {
+            $sections = collect(array_filter(explode(':', $emoji)));
+            $emojiName = $sections->first();
+            $skinVariant = ($sections->count() > 1) ? $sections->last() : null;
+            if ($customEmojis->has($emojiName)) {
+                $replacements->add(['from' => $emoji, 'to' => $this->slackUrlTransformer->transform($customEmojis->get($emojiName))]);
+            } else {
+                $defaultEmoji = $this->getDefaultUnicodeEmoji($defaultEmojis, $emojiName);
+                if (!$defaultEmoji) {
+                    continue;
+                }
+                if ($skinVariant && $this->applySkinVariation($skinVariant, $defaultEmoji, $emoji, $replacements)) {
+                    continue;
+                }
                 $replacements->add(['from' => $emoji, 'to' => '&#x' . $defaultEmoji['unicode'] . ';']);
             }
         }
         return $replacements;
+    }
+
+    private function getDefaultUnicodeEmoji(Collection $defaultEmojis, string $emojiName): ?array
+    {
+        return $defaultEmojis->first(fn($item) => $item['name'] === $emojiName);
+    }
+
+    private function applySkinVariation(string $skinVariant, array $emojiArray, string $emoji, Collection $replacements): bool
+    {
+        $skinVariant = $emojiArray['skinVariations'];
+        $variantUnicode = collect(array_filter($skinVariant, fn($v) => $v['name'] === ltrim(rtrim($emoji, ":"), ":")));
+        if ($variantUnicode->isNotEmpty()) {
+            $replacements->add(['from' => $emoji, 'to' => array_reduce(explode('-', $variantUnicode->first()['unicode']), fn ($carry, $unicode) => $carry .= '&#x' . $unicode. ';', '')]);
+            return true;
+        }
+        return false;
+    }
+
+    private function getEmojiesFromMessage(string $message): ?array
+    {
+        preg_match_all('/:[^:\s]*(?:::[^:\s]*)*:/', $message, $emojis);
+        return !empty($emojis) ? $emojis[0] :null ;
     }
 
 }
