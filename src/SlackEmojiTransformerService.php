@@ -14,8 +14,8 @@ final class SlackEmojiTransformerService
     private string $token;
 
     public function __construct(
-        private LoadsDefaultEmojis $defaultEmojiLoader,
-        private LoadsCustomEmojis $customEmojiLoader,
+        private LoadDefaultEmojis $defaultEmojiLoader,
+        private LoadCustomEmojis $customEmojiLoader,
         private TransformsUrls $slackUrlTransformer
     ) {}
 
