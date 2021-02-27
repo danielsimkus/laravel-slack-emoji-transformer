@@ -43,7 +43,7 @@
     "extra": {
         "laravel": {
             "providers": [
-
+                "DanielSimkus\\SlackEmojiTransformer\\Providers\\SlackEmojiTransformerProvider"
             ]
         }
     }
