@@ -29,18 +29,18 @@ class LoadCustomEmojis
         $this->hashManager = $hashManager;
     }
 
-    public function load(string $token, bool $isBot = false): Collection
+    public function load(string $token): Collection
     {
         return $this->cache->remember(
             static::class . $this->hashManager->make($token),
             $this->config->get('slack-emoji-transformer.custom-emoji-cache-time-seconds', 300),
-            fn () => $this->loadEmojisFromSlack($token, $isBot)
+            fn () => $this->loadEmojisFromSlack($token)
         );
     }
 
-    protected function loadEmojisFromSlack(string $token, bool $isBot): Collection
+    protected function loadEmojisFromSlack(string $token): Collection
     {
-        $action = ($isBot) ? 'admin.emoji.list' : 'emoji.list';
+        $action = 'emoji.list';
         $response = $this->http->withToken($token)
             ->get($this->config->get('slack-emoji-transformer.slack-api', "https://slack.com/api/") . $action)
             ->json();
@@ -49,9 +49,6 @@ class LoadCustomEmojis
         }
 
         $emojies = collect($response['emoji']);
-        if ($isBot) {
-            $emojies->map(fn ($item) => $item['url']);
-        }
         return $emojies;
     }
 }

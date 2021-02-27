@@ -43,7 +43,7 @@ final class SlackEmojiTransformerService
         }
         $emojis = $emojis[0];
         $replacements = collect([]);
-        $customEmojis = app(LoadCustomEmojis::class)->load($this->token, $this->isBot);
+        $customEmojis = app(LoadCustomEmojis::class)->load($this->token);
         $defaultEmojis = app(LoadDefaultEmojis::class)->load();
         foreach ($emojis as $emoji) {
             $strippedEmoji = str_replace(':', '', $emoji);
