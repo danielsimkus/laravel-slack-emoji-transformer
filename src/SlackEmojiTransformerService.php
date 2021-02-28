@@ -49,6 +49,10 @@ final class SlackEmojiTransformerService
         foreach ($emojis as $emoji) {
             $sections = collect(array_filter(explode(':', $emoji)));
             $emojiName = $sections->first();
+            if ($emojiName === 'alias') {
+                $sections->shift();
+                $emojiName = $sections->first();
+            }
             $skinVariant = ($sections->count() > 1) ? $sections->last() : null;
             if ($customEmojis->has($emojiName)) {
                 $replacements->add(['from' => $emoji, 'to' => $this->slackUrlTransformer->transform($customEmojis->get($emojiName))]);
@@ -57,7 +61,7 @@ final class SlackEmojiTransformerService
                 if (!$defaultEmoji) {
                     continue;
                 }
-                if ($skinVariant && $this->applySkinVariation($skinVariant, $defaultEmoji, $emoji, $replacements)) {
+                if ($skinVariant && $this->applySkinVariation($defaultEmoji, $emoji, $replacements)) {
                     continue;
                 }
                 $replacements->add(['from' => $emoji, 'to' => '&#x' . $defaultEmoji['unicode'] . ';']);
@@ -71,10 +75,10 @@ final class SlackEmojiTransformerService
         return $defaultEmojis->first(fn($item) => $item['name'] === $emojiName);
     }
 
-    private function applySkinVariation(string $skinVariant, array $emojiArray, string $emoji, Collection $replacements): bool
+    private function applySkinVariation(array $emojiArray, string $emoji, Collection $replacements): bool
     {
-        $skinVariant = $emojiArray['skinVariations'];
-        $variantUnicode = collect(array_filter($skinVariant, fn($v) => $v['name'] === ltrim(rtrim($emoji, ":"), ":")));
+        $skinVariants = $emojiArray['skinVariations'];
+        $variantUnicode = collect(array_filter($skinVariants, fn($v) => $v['name'] === ltrim(rtrim($emoji, ":"), ":")));
         if ($variantUnicode->isNotEmpty()) {
             $replacements->add(['from' => $emoji, 'to' => array_reduce(explode('-', $variantUnicode->first()['unicode']), fn ($carry, $unicode) => $carry .= '&#x' . $unicode. ';', '')]);
             return true;
