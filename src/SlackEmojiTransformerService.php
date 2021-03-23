@@ -44,7 +44,11 @@ final class SlackEmojiTransformerService
         }
 
         $replacements = collect([]);
-        $customEmojis = app(LoadCustomEmojis::class)->load($this->token);
+        try {
+            $customEmojis = app(LoadCustomEmojis::class)->load($this->token);
+        } catch (\Exception $e) {
+            $customEmojis = collect([]);
+        }
         $defaultEmojis = app(LoadDefaultEmojis::class)->load();
         foreach ($emojis as $emoji) {
             $sections = collect(array_filter(explode(':', $emoji)));
