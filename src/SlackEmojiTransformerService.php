@@ -44,11 +44,7 @@ final class SlackEmojiTransformerService
         }
 
         $replacements = collect([]);
-        try {
-            $customEmojis = app(LoadCustomEmojis::class)->load($this->token);
-        } catch (\Exception $e) {
-            $customEmojis = collect([]);
-        }
+        $customEmojis = $this->loadCustomEmojies();
         $defaultEmojis = app(LoadDefaultEmojis::class)->load();
         foreach ($emojis as $emoji) {
             $sections = collect(array_filter(explode(':', $emoji)));
@@ -81,8 +77,11 @@ final class SlackEmojiTransformerService
 
     private function applySkinVariation(array $emojiArray, string $emoji, Collection $replacements): bool
     {
+        if (!array_key_exists('skinVariations', $emojiArray)) {
+            return false;
+        }
         $skinVariants = $emojiArray['skinVariations'];
-        $variantUnicode = collect(array_filter($skinVariants, fn($v) => $v['name'] === ltrim(rtrim($emoji, ":"), ":")));
+        $variantUnicode = $this->findUnicodeFromSkinVariations($skinVariants, $emoji);
         if ($variantUnicode->isNotEmpty()) {
             $replacements->add(['from' => $emoji, 'to' => array_reduce(explode('-', $variantUnicode->first()['unicode']), fn ($carry, $unicode) => $carry .= '&#x' . $unicode. ';', '')]);
             return true;
@@ -94,6 +93,26 @@ final class SlackEmojiTransformerService
     {
         preg_match_all('/:[^:\s]*(?:::[^:\s]*)*:/', $message, $emojis);
         return !empty($emojis) ? $emojis[0] :null ;
+    }
+
+    private function loadCustomEmojies(): Collection
+    {
+        try {
+            if ($this->token) {
+                $customEmojis = app(LoadCustomEmojis::class)->load($this->token);
+            }
+        } catch (\Exception $e) {
+            $customEmojis = collect([]);
+        }
+
+        return $customEmojis;
+    }
+
+    private function findUnicodeFromSkinVariations(mixed $skinVariants, string $emoji): Collection
+    {
+        $variantUnicode = collect(array_filter($skinVariants, fn($v) => $v['name'] === ltrim(rtrim($emoji, ":"), ":")));
+
+        return $variantUnicode;
     }
 
 }
