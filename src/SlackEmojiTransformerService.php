@@ -61,13 +61,23 @@ final class SlackEmojiTransformerService
                 if (!$defaultEmoji) {
                     continue;
                 }
+
                 if ($skinVariant && $this->applySkinVariation($defaultEmoji, $emoji, $replacements)) {
                     continue;
                 }
-                $replacements->add(['from' => $emoji, 'to' => '&#x' . $defaultEmoji['unicode'] . ';']);
+
+                $replacements->add([
+                    'from' => $emoji,
+                    'to' => $this->combineUnicodeEmojis(explode('-', $defaultEmoji['unicode']))
+                ]);
             }
         }
         return $replacements;
+    }
+
+    private function combineUnicodeEmojis(array $unicodeEmojis)
+    {
+        return '&#x' . implode(';&#x', $unicodeEmojis) . ';';
     }
 
     private function getDefaultUnicodeEmoji(Collection $defaultEmojis, string $emojiName): ?array
@@ -83,7 +93,7 @@ final class SlackEmojiTransformerService
         $skinVariants = $emojiArray['skinVariations'];
         $variantUnicode = $this->findUnicodeFromSkinVariations($skinVariants, $emoji);
         if ($variantUnicode->isNotEmpty()) {
-            $replacements->add(['from' => $emoji, 'to' => array_reduce(explode('-', $variantUnicode->first()['unicode']), fn ($carry, $unicode) => $carry .= '&#x' . $unicode. ';', '')]);
+            $replacements->add(['from' => $emoji, 'to' => $this->combineUnicodeEmojis(explode('-', $variantUnicode->first()['unicode']))]);
             return true;
         }
         return false;
