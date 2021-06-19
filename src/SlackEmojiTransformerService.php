@@ -97,12 +97,9 @@ final class SlackEmojiTransformerService
 
     private function loadCustomEmojies(): Collection
     {
-        try {
-            if ($this->token) {
-                $customEmojis = app(LoadCustomEmojis::class)->load($this->token);
-            }
-        } catch (\Exception $e) {
-            $customEmojis = collect([]);
+        $customEmojis = collect([]);
+        if ($this->token) {
+            $customEmojis = app(LoadCustomEmojis::class)->load($this->token);
         }
 
         return $customEmojis;
