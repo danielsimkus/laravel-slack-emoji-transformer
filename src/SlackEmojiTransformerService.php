@@ -29,7 +29,7 @@ final class SlackEmojiTransformerService
     public function transform(string $message): string
     {
         return $this->getReplacements($message)
-            ->reduce(fn ($message, $replacement) => str_ireplace($replacement, $message));
+            ->reduce(fn ($mesage, $replacements) => str_ireplace($replacements['from'], $replacements['to'], $message));
     }
 
     /**
@@ -45,7 +45,7 @@ final class SlackEmojiTransformerService
 
         $replacements = collect([]);
         $customEmojis = $this->loadCustomEmojies();
-        $defaultEmojis = app(LoadDefaultEmojis::class)->load();
+        $defaultEmojis = $this->defaultEmojiLoader->load();
         foreach ($emojis as $emoji) {
             $sections = collect(array_filter(explode(':', $emoji)));
             $emojiName = $sections->first();
@@ -62,7 +62,7 @@ final class SlackEmojiTransformerService
                     continue;
                 }
 
-                if ($skinVariant && $this->applySkinVariation($defaultEmoji, $emoji, $replacements)) {
+                if ($skinVariant && $this->applySkinVariation($defaultEmoji, $emoji, $skinVariant, $replacements)) {
                     continue;
                 }
 
@@ -80,20 +80,31 @@ final class SlackEmojiTransformerService
         return '&#x' . implode(';&#x', $unicodeEmojis) . ';';
     }
 
-    private function getDefaultUnicodeEmoji(Collection $defaultEmojis, string $emojiName): ?array
+    public function getDefaultUnicodeEmoji(Collection $defaultEmojis, string $emojiName): ?array
     {
-        return $defaultEmojis->first(fn($item) => $item['name'] === $emojiName);
+        $directMatch =  $defaultEmojis->first(fn($item) => $item['name'] === $emojiName);
+
+        if ($directMatch) {
+            return $directMatch;
+        }
+
+        return $defaultEmojis
+            ->first(fn($item) => array_key_exists('aliases', $item) && collect($item['aliases'])->where('name', $emojiName)->isNotEmpty());
     }
 
-    private function applySkinVariation(array $emojiArray, string $emoji, Collection $replacements): bool
+    private function applySkinVariation(array $emojiArray, string $emoji, string $skinVariant, Collection $replacements): bool
     {
         if (!array_key_exists('skinVariations', $emojiArray)) {
             return false;
         }
+
         $skinVariants = $emojiArray['skinVariations'];
-        $variantUnicode = $this->findUnicodeFromSkinVariations($skinVariants, $emoji);
+        $variantUnicode = $this->findUnicodeFromSkinVariations($skinVariants, $skinVariant);
         if ($variantUnicode->isNotEmpty()) {
-            $replacements->add(['from' => $emoji, 'to' => $this->combineUnicodeEmojis(explode('-', $variantUnicode->first()['unicode']))]);
+            $replacements->add([
+                'from' => $emoji,
+                'to' => $this->combineUnicodeEmojis(explode('-', $variantUnicode->first()['unicode']))
+            ]);
             return true;
         }
         return false;
@@ -109,15 +120,20 @@ final class SlackEmojiTransformerService
     {
         $customEmojis = collect([]);
         if ($this->token) {
-            $customEmojis = app(LoadCustomEmojis::class)->load($this->token);
+            $customEmojis = $this->customEmojiLoader->load($this->token);
         }
 
         return $customEmojis;
     }
 
-    private function findUnicodeFromSkinVariations(mixed $skinVariants, string $emoji): Collection
+    private function findUnicodeFromSkinVariations(mixed $skinVariants, string $skinVariant): Collection
     {
-        $variantUnicode = collect(array_filter($skinVariants, fn($v) => $v['name'] === ltrim(rtrim($emoji, ":"), ":")));
+        $variantUnicode = collect(
+            array_filter(
+                $skinVariants,
+                fn($v) => str_ends_with($v['name'], $skinVariant)
+            )
+        );
 
         return $variantUnicode;
     }
