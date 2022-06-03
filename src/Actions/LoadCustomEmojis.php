@@ -20,19 +20,17 @@ class LoadCustomEmojis
     public function __construct(
         Http $http,
         Cache $cache,
-        Config $config,
-        HashManager $hashManager
+        Config $config
     ) {
         $this->http = $http;
         $this->cache = $cache;
         $this->config = $config;
-        $this->hashManager = $hashManager;
     }
 
     public function load(string $token): Collection
     {
         return $this->cache->remember(
-            static::class . $this->hashManager->make($token),
+            static::class . sha1($token),
             $this->config->get('slack-emoji-transformer.custom-emoji-cache-time-seconds', 300),
             fn () => $this->loadEmojisFromSlack($token)
         );
@@ -44,8 +42,10 @@ class LoadCustomEmojis
         $response = $this->http->withToken($token)
             ->get($this->config->get('slack-emoji-transformer.slack-api', "https://slack.com/api/") . $action)
             ->json();
+
         if ($response['ok'] === false) {
-            Throw new \Exception('Failed to load custom emojis: ' . $response['error']);
+//            Throw new \Exception('Failed to load custom emojis: ' . $response['error']);
+            return collect([]);
         }
 
         $emojies = collect($response['emoji']);
