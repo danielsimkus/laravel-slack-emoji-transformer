@@ -30,7 +30,7 @@
     },
     "require": {
         "php": "^8.0",
-        "laravel/framework": "^7.0|^8.0|^9.0"
+        "laravel/framework": "^7.0|^8.0|^9.0",
         "guzzlehttp/guzzle": "^7.3"
     },
     "require-dev": {
